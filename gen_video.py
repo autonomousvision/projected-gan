@@ -60,7 +60,7 @@ def gen_interp_video(G, mp4: str, seeds, shuffle_seed=None, w_frames=60*4, kind=
         rng = np.random.RandomState(seed=shuffle_seed)
         rng.shuffle(all_seeds)
 
-    zs = torch.from_numpy(np.stack([np.random.RandomState(seed).randn(G.z_dim) for seed in all_seeds])).to(device)
+    zs = torch.from_numpy(np.stack([np.random.RandomState(seed).randn(G.z_dim) for seed in all_seeds])).to(device).float()
     # Labels.
     label = torch.zeros([zs.size(0), G.c_dim], device=device)
     if G.c_dim != 0:
@@ -72,7 +72,7 @@ def gen_interp_video(G, mp4: str, seeds, shuffle_seed=None, w_frames=60*4, kind=
             print ('warn: --class=lbl ignored when running on an unconditional network')
 
     ws = G.mapping(z=zs, c=label, truncation_psi=psi)
-    _ = G.synthesis(ws[:1]) # warm up
+    _ = G.synthesis(ws[:1], c=label) # warm up
     ws = ws.reshape(grid_h, grid_w, num_keyframes, *ws.shape[1:])
 
     # Interpolation.
@@ -93,8 +93,8 @@ def gen_interp_video(G, mp4: str, seeds, shuffle_seed=None, w_frames=60*4, kind=
         for yi in range(grid_h):
             for xi in range(grid_w):
                 interp = grid[yi][xi]
-                w = torch.from_numpy(interp(frame_idx / w_frames)).to(device)
-                img = G.synthesis(ws=w.unsqueeze(0), noise_mode='const')[0]
+                w = torch.from_numpy(interp(frame_idx / w_frames)).to(device).float()
+                img = G.synthesis(w.unsqueeze(0), c=label, noise_mode='const')[0]
                 imgs.append(img)
         video_out.append_data(layout_grid(torch.stack(imgs), grid_w=grid_w, grid_h=grid_h))
     video_out.close()

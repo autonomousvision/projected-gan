@@ -14,8 +14,8 @@ class DummyMapping(nn.Module):
     def __init__(self):
         super().__init__()
 
-    def forward(self, z, c, update_emas=False):
-        return z
+    def forward(self, z, c, **kwargs):
+        return z.unsqueeze(1)  # to fit the StyleGAN API
 
 
 class FastganSynthesis(nn.Module):
@@ -53,9 +53,9 @@ class FastganSynthesis(nn.Module):
         if img_resolution > 512:
             self.feat_1024 = UpBlock(nfc[512], nfc[1024])
 
-    def forward(self, input, c, update_emas=False):
+    def forward(self, input, c, **kwargs):
         # map noise to hypersphere as in "Progressive Growing of GANS"
-        input = normalize_second_moment(input)
+        input = normalize_second_moment(input[:, 0])
 
         feat_4 = self.init(input)
         feat_8 = self.feat_8(feat_4)
@@ -119,7 +119,7 @@ class FastganSynthesisCond(nn.Module):
         c = self.embed(c.argmax(1))
 
         # map noise to hypersphere as in "Progressive Growing of GANS"
-        input = normalize_second_moment(input)
+        input = normalize_second_moment(input[:, 0])
 
         feat_4 = self.init(input)
         feat_8 = self.feat_8(feat_4, c)
