@@ -1,3 +1,4 @@
+from functools import partial
 import numpy as np
 import torch
 import torch.nn as nn
@@ -9,7 +10,7 @@ from pg_modules.diffaug import DiffAugment
 
 
 class SingleDisc(nn.Module):
-    def __init__(self, nc=None, ndf=None, start_sz=256, end_sz=8, head=None, patch=False):
+    def __init__(self, nc=None, ndf=None, start_sz=256, end_sz=8, head=None, separable=False, patch=False):
         super().__init__()
         channel_dict = {4: 512, 8: 512, 16: 256, 32: 128, 64: 64, 128: 64,
                         256: 32, 512: 16, 1024: 8}
@@ -39,7 +40,7 @@ class SingleDisc(nn.Module):
                        nn.LeakyReLU(0.2, inplace=True)]
 
         # Down Blocks
-        DB = DownBlockPatch if patch else DownBlock
+        DB = partial(DownBlockPatch, separable=separable) if patch else partial(DownBlock, separable=separable)
         while start_sz > end_sz:
             layers.append(DB(nfc[start_sz],  nfc[start_sz//2]))
             start_sz = start_sz // 2
@@ -52,7 +53,7 @@ class SingleDisc(nn.Module):
 
 
 class SingleDiscCond(nn.Module):
-    def __init__(self, nc=None, ndf=None, start_sz=256, end_sz=8, head=None, patch=False, c_dim=1000, cmap_dim=64, embedding_dim=128):
+    def __init__(self, nc=None, ndf=None, start_sz=256, end_sz=8, head=None, separable=False, patch=False, c_dim=1000, cmap_dim=64, embedding_dim=128):
         super().__init__()
         self.cmap_dim = cmap_dim
 
@@ -85,7 +86,7 @@ class SingleDiscCond(nn.Module):
                        nn.LeakyReLU(0.2, inplace=True)]
 
         # Down Blocks
-        DB = DownBlockPatch if patch else DownBlock
+        DB = partial(DownBlockPatch, separable=separable) if patch else partial(DownBlock, separable=separable)
         while start_sz > end_sz:
             layers.append(DB(nfc[start_sz],  nfc[start_sz//2]))
             start_sz = start_sz // 2
@@ -118,6 +119,7 @@ class MultiScaleD(nn.Module):
         num_discs=1,
         proj_type=2,  # 0 = no projection, 1 = cross channel mixing, 2 = cross scale mixing
         cond=0,
+        separable=False,
         patch=False,
         **kwargs,
     ):
@@ -133,7 +135,7 @@ class MultiScaleD(nn.Module):
         mini_discs = []
         for i, (cin, res) in enumerate(zip(self.disc_in_channels, self.disc_in_res)):
             start_sz = res if not patch else 16
-            mini_discs += [str(i), Disc(nc=cin, start_sz=start_sz, end_sz=8, patch=patch)],
+            mini_discs += [str(i), Disc(nc=cin, start_sz=start_sz, end_sz=8, separable=separable, patch=patch)],
         self.mini_discs = nn.ModuleDict(mini_discs)
 
     def forward(self, features, c):

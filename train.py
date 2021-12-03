@@ -204,9 +204,12 @@ def main(**kwargs):
     if opts.cfg == 'stylegan2':
         c.G_kwargs.class_name = 'pg_modules.networks_stylegan2.Generator'
         c.G_kwargs.fused_modconv_default = 'inference_only' # Speed up training by using regular convolutions instead of grouped convolutions.
+        use_separable_discs = True
+
     elif opts.cfg == 'fastgan':
         c.G_kwargs = dnnlib.EasyDict(class_name='pg_modules.networks_fastgan.Generator', cond=opts.cond)
         c.G_opt_kwargs.lr = c.D_opt_kwargs.lr = 0.0002
+        use_separable_discs = False
 
     # Resume.
     if opts.resume is not None:
@@ -241,6 +244,7 @@ def main(**kwargs):
     c.D_kwargs.backbone_kwargs.expand = True
     c.D_kwargs.backbone_kwargs.proj_type = 2
     c.D_kwargs.backbone_kwargs.num_discs = 4
+    c.D_kwargs.backbone_kwargs.separable = use_separable_discs
     c.D_kwargs.backbone_kwargs.cond = opts.cond
 
     # Launch.

@@ -171,25 +171,31 @@ class SeparableConv2d(nn.Module):
 
 
 class DownBlock(nn.Module):
-    def __init__(self, in_planes, out_planes):
-        ''' improved DownBlock '''
+    def __init__(self, in_planes, out_planes, separable=False):
         super().__init__()
-        self.main = nn.Sequential(
-            SeparableConv2d(in_planes, out_planes, 3),
-            NormLayer(out_planes),
-            nn.LeakyReLU(0.2, inplace=True),
-            nn.AvgPool2d(2, 2),
-        )
+        if not separable:
+            self.main = nn.Sequential(
+                conv2d(in_planes, out_planes, 4, 2, 1),
+                NormLayer(out_planes),
+                nn.LeakyReLU(0.2, inplace=True),
+            )
+        else:
+            self.main = nn.Sequential(
+                SeparableConv2d(in_planes, out_planes, 3),
+                NormLayer(out_planes),
+                nn.LeakyReLU(0.2, inplace=True),
+                nn.AvgPool2d(2, 2),
+            )
 
     def forward(self, feat):
         return self.main(feat)
 
 
 class DownBlockPatch(nn.Module):
-    def __init__(self, in_planes, out_planes):
+    def __init__(self, in_planes, out_planes, separable=False):
         super().__init__()
         self.main = nn.Sequential(
-            DownBlock(in_planes, out_planes),
+            DownBlock(in_planes, out_planes, separable),
             conv2d(out_planes, out_planes, 1, 1, 0, bias=False),
             NormLayer(out_planes),
             nn.LeakyReLU(0.2, inplace=True),
