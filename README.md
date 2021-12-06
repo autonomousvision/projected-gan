@@ -2,6 +2,8 @@
 
 #### [[Project]](https://sites.google.com/view/projected-gan/) [[PDF]](http://www.cvlibs.net/publications/Sauer2021NEURIPS.pdf) [[Supplementary]](http://www.cvlibs.net/publications/Sauer2021NEURIPS_supplementary.pdf) [[Talk]](https://recorder-v3.slideslive.com/#/share?share=50538&s=bf7a6393-410c-49d9-8edf-c61fa486c354)
 
+For a quick start, try the Colab: &nbsp; [![Projected GAN Quickstart](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/gist/xl-sr/757757ff8709ad1721c6d9462efdc347/projected_gan.ipynb)
+
 This repository contains the code for our NeurIPS 2021 paper "Projected GANs Converge Faster"
 
 by [Axel Sauer](https://axelsauer.com/), [Kashyap Chitta](https://kashyap7x.github.io/), [Jens Müller](https://hci.iwr.uni-heidelberg.de/users/jmueller), and [Andreas Geiger](http://www.cvlibs.net/).
@@ -18,8 +20,8 @@ If you find our code or paper useful, please cite
 
 ## ToDos
 - [x] Initial code release
+- [x] Easy-to-use colab
 - [ ] Providing pretrained models
-- [ ] Easy-to-use colab
 - [ ] StyleGAN3 support
 
 ## Requirements ##
