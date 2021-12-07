@@ -35,11 +35,11 @@ class FastganSynthesis(nn.Module):
         self.init = InitLayer(z_dim, channel=nfc[2], sz=4)
 
         self.feat_8 = UpBlockComp(nfc[4], nfc[8])
-        self.feat_16 = UpBlock(nfc[8], nfc[16])
+        self.feat_16 = UpBlockComp(nfc[8], nfc[16])
         self.feat_32 = UpBlockComp(nfc[16], nfc[32])
-        self.feat_64 = UpBlock(nfc[32], nfc[64])
+        self.feat_64 = UpBlockComp(nfc[32], nfc[64])
         self.feat_128 = UpBlockComp(nfc[64], nfc[128])
-        self.feat_256 = UpBlock(nfc[128], nfc[256])
+        self.feat_256 = UpBlockComp(nfc[128], nfc[256])
 
         self.se_64  = SEBlock(nfc[4], nfc[64])
         self.se_128 = SEBlock(nfc[8], nfc[128])
