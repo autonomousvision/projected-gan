@@ -53,7 +53,10 @@ python train.py --outdir=./training-runs/ --cfg=fastgan --data=./data/pokemon256
 ```
 ```--batch``` specifies the overall batch size, ```--batch-gpu``` specifies the batch size per GPU.  If you use fewer GPUs, the training loop will automatically accumulate gradients, until the overall batch size is reached.
 
-If you want to use the StyleGAN2 generator, use ```--cfg=stylegan2```. Samples and metrics are saved in ```outdir```. To monitor the training progress, you can inspect fid50k_full.json or run tensorboard in training-runs.
+If you want to use the StyleGAN2 generator, pass ```--cfg=stylegan2```.
+We also added a lightweight version of FastGAN (```--cfg=fastgan_lite```). This backbone trains fast regarding wallclock
+time and yields better results on small datasets like Pokemon.
+Samples and metrics are saved in ```outdir```. To monitor the training progress, you can inspect fid50k_full.json or run tensorboard in training-runs.
 
 ## Generating Samples & Interpolations ##
 

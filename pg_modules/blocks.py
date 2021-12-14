@@ -65,7 +65,7 @@ class InitLayer(nn.Module):
         return self.init(noise)
 
 
-def UpBlock(in_planes, out_planes):
+def UpBlockSmall(in_planes, out_planes):
     block = nn.Sequential(
         nn.Upsample(scale_factor=2, mode='nearest'),
         conv2d(in_planes, out_planes*2, 3, 1, 1, bias=False),
@@ -73,7 +73,7 @@ def UpBlock(in_planes, out_planes):
     return block
 
 
-class UpBlockCond(nn.Module):
+class UpBlockSmallCond(nn.Module):
     def __init__(self, in_planes, out_planes, z_dim):
         super().__init__()
         self.in_planes = in_planes
@@ -93,7 +93,7 @@ class UpBlockCond(nn.Module):
         return x
 
 
-def UpBlockComp(in_planes, out_planes):
+def UpBlockBig(in_planes, out_planes):
     block = nn.Sequential(
         nn.Upsample(scale_factor=2, mode='nearest'),
         conv2d(in_planes, out_planes*2, 3, 1, 1, bias=False),
@@ -106,7 +106,7 @@ def UpBlockComp(in_planes, out_planes):
     return block
 
 
-class UpBlockCompCond(nn.Module):
+class UpBlockBigCond(nn.Module):
     def __init__(self, in_planes, out_planes, z_dim):
         super().__init__()
         self.in_planes = in_planes

@@ -127,7 +127,7 @@ def parse_comma_separated_list(s):
 
 # Required.
 @click.option('--outdir',       help='Where to save the results', metavar='DIR',                required=True)
-@click.option('--cfg',          help='Base configuration',                                      type=click.Choice(['fastgan', 'stylegan2']), required=True)
+@click.option('--cfg',          help='Base configuration',                                      type=click.Choice(['fastgan', 'fastgan_lite', 'stylegan2']), required=True)
 @click.option('--data',         help='Training data', metavar='[ZIP|DIR]',                      type=str, required=True)
 @click.option('--gpus',         help='Number of GPUs to use', metavar='INT',                    type=click.IntRange(min=1), required=True)
 @click.option('--batch',        help='Total batch size', metavar='INT',                         type=click.IntRange(min=1), required=True)
@@ -206,8 +206,9 @@ def main(**kwargs):
         c.G_kwargs.fused_modconv_default = 'inference_only' # Speed up training by using regular convolutions instead of grouped convolutions.
         use_separable_discs = True
 
-    elif opts.cfg == 'fastgan':
-        c.G_kwargs = dnnlib.EasyDict(class_name='pg_modules.networks_fastgan.Generator', cond=opts.cond)
+    elif opts.cfg in ['fastgan', 'fastgan_lite']:
+        c.G_kwargs = dnnlib.EasyDict(class_name='pg_modules.networks_fastgan.Generator', cond=opts.cond, synthesis_kwargs=dnnlib.EasyDict())
+        c.G_kwargs.synthesis_kwargs.lite = (opts.cfg == 'fastgan_lite')
         c.G_opt_kwargs.lr = c.D_opt_kwargs.lr = 0.0002
         use_separable_discs = False
 
