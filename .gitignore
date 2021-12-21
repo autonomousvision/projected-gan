@@ -26,3 +26,7 @@ tags
 *.pkl
 *.mp4
 *.pyc
+
+# InteliJ files
+.idea
+

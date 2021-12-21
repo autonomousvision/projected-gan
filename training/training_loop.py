@@ -24,6 +24,7 @@ import torch
 import torch.nn.functional as F
 import dnnlib
 import pickle
+from torch import distributed
 from torch_utils import misc
 from torch_utils import training_stats
 from torch_utils.ops import conv2d_gradfix
@@ -32,12 +33,51 @@ from torch_utils.ops import grid_sample_gradfix
 import legacy
 from metrics import metric_main
 
+import logging
+try:
+    import wandb
+except ImportError:
+    wandb = None
+
+#----------------------------------------------------------------------------
+LOGGER = logging.getLogger(__name__)
+LOGGER.setLevel(logging.DEBUG)
+sh = logging.StreamHandler()
+sh.setFormatter(logging.Formatter(
+    "%(asctime)s.%(msecs)03d %(levelname)s {%(module)s} [%(funcName)s] GPU:%(gpu)s %(message)s",
+    datefmt="%Y-%m-%d,%H:%M:%S", ))
+LOGGER.addHandler(sh)
+
+
+def get_rank():
+    if not distributed.is_available():
+        return 0
+    if not distributed.is_initialized():
+        return 0
+    return distributed.get_rank()
+
+
+class GetRankLoggingFilter(logging.Filter):
+    """
+    Adds a GPU number to the current logging.
+    Useful in distributed setting.
+    """
+
+    def filter(self, record):
+        record.gpu = get_rank()
+        return True
+
+
+LOGGER.addFilter(GetRankLoggingFilter())
+
 #----------------------------------------------------------------------------
 
 def setup_snapshot_image_grid(training_set, random_seed=0):
     rnd = np.random.RandomState(random_seed)
-    gw = np.clip(7680 // training_set.image_shape[2], 7, 32)
-    gh = np.clip(4320 // training_set.image_shape[1], 4, 32)
+    # gw = np.clip(7680 // training_set.image_shape[2], 7, 32)
+    # gh = np.clip(4320 // training_set.image_shape[1], 4, 32)
+    gw = 8 # grid width
+    gh = 3 # grid height
 
     # No labels => show random subset of training samples.
     if not training_set.has_labels:
@@ -116,12 +156,14 @@ def training_loop(
     kimg_per_tick           = 4,        # Progress snapshot interval.
     image_snapshot_ticks    = 50,       # How often to save image snapshots? None = disable.
     network_snapshot_ticks  = 50,       # How often to save network snapshots? None = disable.
-    resume_pkl              = None,     # Network pickle to resume training from.
+    # resume_pkl              = None,     # Network pickle to resume training from.
+    resume_latest           = False,
     resume_kimg             = 0,        # First kimg to report when resuming training.
     cudnn_benchmark         = True,     # Enable torch.backends.cudnn.benchmark?
     abort_fn                = None,     # Callback function for determining whether to abort training. Must return consistent results across ranks.
     progress_fn             = None,     # Callback function for updating training progress. Called for all ranks.
     restart_every           = -1,       # Time interval in seconds to exit code
+    wandb_params            = {},       # WandB parameters
 ):
     # Initialize.
     start_time = time.time()
@@ -142,7 +184,8 @@ def training_loop(
 
     # Load training set.
     if rank == 0:
-        print('Loading training set...')
+        # print('Loading training set...')
+        LOGGER.info('Loading training set...')
     training_set = dnnlib.util.construct_class_by_name(**training_set_kwargs) # subclass of training.dataset.Dataset
     training_set_sampler = misc.InfiniteSampler(dataset=training_set, rank=rank, num_replicas=num_gpus, seed=random_seed)
     training_set_iterator = iter(torch.utils.data.DataLoader(dataset=training_set, sampler=training_set_sampler, batch_size=batch_size//num_gpus, **data_loader_kwargs))
@@ -162,10 +205,9 @@ def training_loop(
     G_ema = copy.deepcopy(G).eval()
 
     # Check for existing checkpoint
-    ckpt_pkl = None
-    if restart_every > 0 and os.path.isfile(misc.get_ckpt_path(run_dir)):
-        ckpt_pkl = resume_pkl = misc.get_ckpt_path(run_dir)
-
+    resume_pkl = ckpt_pkl = None
+    if restart_every > 0 and misc.get_latest_ckpt_file(run_dir):
+        ckpt_pkl = resume_pkl = misc.get_latest_ckpt_file(run_dir)
     # Resume from existing pickle.
     if (resume_pkl is not None) and (rank == 0):
         print(f'Resuming from "{resume_pkl}"')
@@ -180,6 +222,24 @@ def training_loop(
             __BATCH_IDX__ = resume_data['progress']['batch_idx'].to(device)
             __PL_MEAN__ = resume_data['progress'].get('pl_mean', torch.zeros([])).to(device)
             best_fid = resume_data['progress']['best_fid']       # only needed for rank == 0
+
+    # Setup WandB
+    if (rank == 0) and (wandb is not None) and (wandb_params['wandb']):
+        LOGGER.info(f"Initializing wandb project: {wandb_params['wandb_project']}, "
+                    f"resume_run: {wandb_params['wandb_resume_run']}, "
+                    f"run_name: {wandb_params['wandb_run_name']}, "
+                    f"id: {wandb_params['wandb_id']}, "
+                    f"entity: {wandb_params['wandb_entity']}")
+        wandb_kwargs = {}
+        if wandb_params['wandb_resume_run']:
+            wandb_kwargs['resume'] = True
+        if wandb_params['wandb_run_name'] != '':
+            wandb_kwargs['name'] = wandb_params['wandb_run_name']
+        if wandb_params['wandb_id'] != '':
+            wandb_kwargs['id'] = wandb_params['wandb_id']
+        if wandb_params['wandb_entity'] != '':
+            wandb_kwargs['entity'] = wandb_params['wandb_entity']
+        wandb.init(project=wandb_params['wandb_project'], **wandb_kwargs)
 
     # Print network summary tables.
     if rank == 0:
@@ -355,6 +415,7 @@ def training_loop(
         training_stats.report0('Timing/total_days', (tick_end_time - start_time) / (24 * 60 * 60))
         if rank == 0:
             print(' '.join(fields))
+            LOGGER.info(' '.join(fields))
 
         # Check for abort.
         if (not done) and (abort_fn is not None) and abort_fn():
@@ -378,7 +439,10 @@ def training_loop(
         # Save image snapshot.
         if (rank == 0) and (image_snapshot_ticks is not None) and (done or cur_tick % image_snapshot_ticks == 0):
             images = torch.cat([G_ema(z=z, c=c, noise_mode='const').cpu() for z, c in zip(grid_z, grid_c)]).numpy()
-            save_image_grid(images, os.path.join(run_dir, f'fakes{cur_nimg//1000:06d}.png'), drange=[-1,1], grid_size=grid_size)
+            fake_sample_path = os.path.join(run_dir, f'fakes{cur_nimg//1000:06d}.png')
+            save_image_grid(images, fake_sample_path, drange=[-1,1], grid_size=grid_size)
+            if wandb and wandb_params.get('wandb'):
+                wandb.save(fake_sample_path)
 
         # Save network snapshot.
         snapshot_pkl = None
@@ -393,7 +457,7 @@ def training_loop(
         # Save Checkpoint if needed
         if (rank == 0) and (restart_every > 0) and (network_snapshot_ticks is not None) and (
                 done or cur_tick % network_snapshot_ticks == 0):
-            snapshot_pkl = misc.get_ckpt_path(run_dir)
+            snapshot_pkl = misc.get_ckpt_path(run_dir, cur_nimg//1000)
             # save as tensors to avoid error for multi GPU
             snapshot_data['progress'] = {
                 'cur_nimg': torch.LongTensor([cur_nimg]),
@@ -406,6 +470,9 @@ def training_loop(
 
             with open(snapshot_pkl, 'wb') as f:
                 pickle.dump(snapshot_data, f)
+
+            if wandb and wandb_params.get('wandb'):
+                wandb.save(snapshot_pkl)
 
         # Evaluate metrics.
         # if (snapshot_data is not None) and (len(metrics) > 0):
@@ -461,6 +528,21 @@ def training_loop(
             stats_tfevents.flush()
         if progress_fn is not None:
             progress_fn(cur_nimg // 1000, total_kimg)
+
+        # save metrics
+        # TODO: maybe remove some metrics/stats?
+        if (rank == 0) and (wandb is not None) and (wandb_params.get('wandb')):
+            if len(stats_metrics) or len(stats_dict):
+                wandb_dict = {}
+                for name, value in stats_dict.items():
+                    wandb_dict[name] = value
+                for name, value in stats_metrics.items():
+                    wandb_dict[f'metric_{name}'] = value
+                wandb.log(
+                    wandb_dict,
+                    commit=True,
+                    step=cur_nimg // 1000)
+                print('wandb_dict', wandb_dict)
 
         # Update state.
         cur_tick += 1

@@ -135,7 +135,8 @@ def parse_comma_separated_list(s):
 # Optional features.
 @click.option('--cond',         help='Train conditional model', metavar='BOOL',                 type=bool, default=False, show_default=True)
 @click.option('--mirror',       help='Enable dataset x-flips', metavar='BOOL',                  type=bool, default=False, show_default=True)
-@click.option('--resume',       help='Resume from given network pickle', metavar='[PATH|URL]',  type=str)
+# @click.option('--resume',       help='Resume from given network pickle', metavar='[PATH|URL]',  type=str)
+@click.option('--resume_latest',help='Resume from given network pickle', metavar='BOOL',        type=str, default=False)
 
 # Misc hyperparameters.
 @click.option('--batch-gpu',    help='Limit batch size per GPU', metavar='INT',                 type=click.IntRange(min=1))
@@ -157,6 +158,14 @@ def parse_comma_separated_list(s):
 @click.option('--workers',      help='DataLoader worker processes', metavar='INT',              type=click.IntRange(min=1), default=3, show_default=True)
 @click.option('-n','--dry-run', help='Print training options and exit',                         is_flag=True)
 @click.option('--restart_every',help='Time interval in seconds to restart code', metavar='INT', type=int, default=9999999, show_default=True)
+
+# WandB config
+@click.option('--wandb',            help='save in wandb',                                       is_flag=True)
+@click.option('--wandb-project',    help='wandb project', metavar='STR',                         type=str, default='ProjectedGan', show_default=True)
+@click.option('--wandb-entity',     help='wandb entity', metavar='STR',                          type=str, default="", show_default=True)
+@click.option('--wandb-run-name',   help='wandb entity', metavar='STR',                          type=str, default="", show_default=True)
+@click.option('--wandb-id',         help='wandb entity', metavar='STR',                          type=str, default="", show_default=True)
+@click.option('--wandb-resume-run', help='wandb resume previous id', metavar='BOOL',             type=bool, default=False, show_default=True)
 
 
 def main(**kwargs):
@@ -191,6 +200,16 @@ def main(**kwargs):
     c.random_seed = c.training_set_kwargs.random_seed = opts.seed
     c.data_loader_kwargs.num_workers = opts.workers
 
+    # WandB parameters
+    c.wandb_params = dnnlib.EasyDict(
+        wandb=opts.wandb,
+        wandb_project=opts.wandb_project,
+        wandb_entity=opts.wandb_entity,
+        wandb_run_name=opts.wandb_run_name,
+        wandb_id=opts.wandb_id,
+        wandb_resume_run=opts.wandb_resume_run)
+
+
     # Sanity checks.
     if c.batch_size % c.num_gpus != 0:
         raise click.ClickException('--batch must be a multiple of --gpus')
@@ -213,9 +232,11 @@ def main(**kwargs):
         use_separable_discs = False
 
     # Resume.
-    if opts.resume is not None:
-        c.resume_pkl = opts.resume
-        c.ema_rampup = None  # Disable EMA rampup.
+    # if opts.resume is not None:
+    #     c.resume_pkl = opts.resume
+    #     c.ema_rampup = None  # Disable EMA rampup.
+    if opts.resume_latest:
+        c.resume_latest = True
 
     # Restart.
     c.restart_every = opts.restart_every
@@ -252,7 +273,7 @@ def main(**kwargs):
     launch_training(c=c, desc=desc, outdir=opts.outdir, dry_run=opts.dry_run)
 
     # Check for restart
-    last_snapshot = misc.get_ckpt_path(c.run_dir)
+    last_snapshot = misc.get_latest_ckpt_file(c.run_dir)
     if os.path.isfile(last_snapshot):
         # get current number of training images
         with dnnlib.util.open_url(last_snapshot) as f:
