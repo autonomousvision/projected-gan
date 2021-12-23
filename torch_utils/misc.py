@@ -12,6 +12,7 @@ import numpy as np
 import torch
 import warnings
 import dnnlib
+import os
 
 #----------------------------------------------------------------------------
 # Cached construction of constant tensors. Avoids CPU=>GPU copy when the
@@ -264,16 +265,12 @@ def print_module_summary(module, inputs, max_nesting=3, skip_redundant=True):
     return outputs
 
 #----------------------------------------------------------------------------
-
-import os
-
-
 def get_ckpt_path(run_dir, i):
     return os.path.join(run_dir, f'network-snapshot{i:06d}.pkl')
 
 
 def get_latest_ckpt_file(run_dir):
-    pkl_files = [os.path.join(run_dir, x) for x in os.listdir(run_dir) if 'network-snapshot' in x]
+    pkl_files = sorted([os.path.join(run_dir, x) for x in os.listdir(run_dir) if 'network-snapshot' in x])
     if len(pkl_files):
         return pkl_files[-1]
     else:

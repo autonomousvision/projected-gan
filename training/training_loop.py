@@ -208,6 +208,10 @@ def training_loop(
     resume_pkl = ckpt_pkl = None
     if restart_every > 0 and misc.get_latest_ckpt_file(run_dir):
         ckpt_pkl = resume_pkl = misc.get_latest_ckpt_file(run_dir)
+        if rank == 0:
+            LOGGER.info('_____________________________')
+            LOGGER.info(f'resuming from checkpoint: {ckpt_pkl}')
+            LOGGER.info('_____________________________')
     # Resume from existing pickle.
     if (resume_pkl is not None) and (rank == 0):
         print(f'Resuming from "{resume_pkl}"')
@@ -216,12 +220,19 @@ def training_loop(
         for name, module in [('G', G), ('D', D), ('G_ema', G_ema)]:
             misc.copy_params_and_buffers(resume_data[name], module, require_all=False)
 
-        if ckpt_pkl is not None:            # Load ticks
+        if ckpt_pkl is not None:  # Load ticks
             __CUR_NIMG__ = resume_data['progress']['cur_nimg'].to(device)
             __CUR_TICK__ = resume_data['progress']['cur_tick'].to(device)
             __BATCH_IDX__ = resume_data['progress']['batch_idx'].to(device)
             __PL_MEAN__ = resume_data['progress'].get('pl_mean', torch.zeros([])).to(device)
             best_fid = resume_data['progress']['best_fid']       # only needed for rank == 0
+            if rank == 0:
+                LOGGER.info(f'Resuming parameters: '
+                            f'cur_nimg {__CUR_NIMG__},  '
+                            f'cur_tick {__CUR_TICK__}, '
+                            f'batch_idx {__BATCH_IDX__}, '
+                            f'pl_mean {__PL_MEAN__}',
+                            f'best_fid {best_fid}')
 
     # Setup WandB
     if (rank == 0) and (wandb is not None) and (wandb_params['wandb']):
