@@ -117,7 +117,7 @@ def convert_tf_generator(tf_G):
         return val if val is not None else none
 
     # Convert kwargs.
-    from training import networks_stylegan2
+    from pg_modules import networks_stylegan2
     network_class = networks_stylegan2.Generator
     kwargs = dnnlib.EasyDict(
         z_dim               = kwarg('latent_size',          512),
@@ -264,7 +264,7 @@ def convert_tf_discriminator(tf_D):
     #for name, value in tf_params.items(): print(f'{name:<50s}{list(value.shape)}')
 
     # Convert params.
-    from training import networks_stylegan2
+    from pg_modules import networks_stylegan2
     D = networks_stylegan2.Discriminator(**kwargs).eval().requires_grad_(False)
     # pylint: disable=unnecessary-lambda
     # pylint: disable=f-string-without-interpolation
