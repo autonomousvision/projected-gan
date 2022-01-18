@@ -14,6 +14,7 @@ import re
 import copy
 import numpy as np
 import torch
+import io
 import dnnlib
 from torch_utils import misc
 
