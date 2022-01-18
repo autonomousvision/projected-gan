@@ -9,6 +9,7 @@
 """Converting legacy network pickle into the new format."""
 
 import click
+import io
 import pickle
 import re
 import copy
