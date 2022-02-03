@@ -181,6 +181,8 @@ def training_loop(
             __PL_MEAN__ = resume_data['progress'].get('pl_mean', torch.zeros([])).to(device)
             best_fid = resume_data['progress']['best_fid']       # only needed for rank == 0
 
+        del resume_data
+
     # Print network summary tables.
     if rank == 0:
         z = torch.empty([batch_gpu, G.z_dim], device=device)
