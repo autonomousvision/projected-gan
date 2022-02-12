@@ -22,7 +22,7 @@ If you find our code or paper useful, please cite
 - [x] Initial code release
 - [x] Easy-to-use colab
 - [x] StyleGAN3 support (moved  to https://github.com/autonomousvision/stylegan_xl)
-- [ ] Providing pretrained models
+- [x] Providing pretrained models
 
 ## Requirements ##
 - 64-bit Python 3.8 and PyTorch 1.9.0 (or later). See https://pytorch.org for PyTorch install instructions.
@@ -71,6 +71,16 @@ python gen_video.py --output=lerp.mp4 --trunc=1.0 --seeds=0-31 --grid=4x2 \
   --network=PATH_TO_NETWORK_PKL
 ```
 
+We provide the following pretrained models (pass the url as `PATH_TO_NETWORK_PKL`):
+  > <sub>`https://s3.eu-central-1.amazonaws.com/avg-projects/projected_gan/models/art_painting.pkl`</sub><br>
+  > <sub>`https://s3.eu-central-1.amazonaws.com/avg-projects/projected_gan/models/church.pkl`</sub><br>
+  > <sub>`https://s3.eu-central-1.amazonaws.com/avg-projects/projected_gan/models/cityscapes.pkl`</sub><br>
+  > <sub>`https://s3.eu-central-1.amazonaws.com/avg-projects/projected_gan/models/clevr.pkl`</sub><br>
+  > <sub>`https://s3.eu-central-1.amazonaws.com/avg-projects/projected_gan/models/ffhq.pkl`</sub><br>
+  > <sub>`https://s3.eu-central-1.amazonaws.com/avg-projects/projected_gan/models/flowers.pkl`</sub><br>
+  > <sub>`https://s3.eu-central-1.amazonaws.com/avg-projects/projected_gan/models/landscape.pkl`</sub><br>
+  > <sub>`https://s3.eu-central-1.amazonaws.com/avg-projects/projected_gan/models/pokemon.pkl`</sub><br>
+  
 ## Quality Metrics ##
 Per default, ```train.py``` tracks FID50k during training. To calculate metrics for a specific network snapshot, run
 
