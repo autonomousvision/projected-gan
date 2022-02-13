@@ -267,8 +267,10 @@ def convert_tf_discriminator(tf_D):
     #for name, value in tf_params.items(): print(f'{name:<50s}{list(value.shape)}')
 
     # Convert params.
-    from pg_modules import networks_stylegan2
-    D = networks_stylegan2.Discriminator(**kwargs).eval().requires_grad_(False)
+    #from pg_modules import networks_stylegan2
+    from pg_modules.discriminator import ProjectedDiscriminator
+
+    D = ProjectedDiscriminator(**kwargs).eval().requires_grad_(False)
     # pylint: disable=unnecessary-lambda
     # pylint: disable=f-string-without-interpolation
     _populate_module_params(D,
