@@ -418,6 +418,8 @@ def open_url(url: str, cache_dir: str = None, num_attempts: int = 10, verbose: b
     # its own set of problems.
     if url.startswith('file://'):
         filename = urllib.parse.urlparse(url).path
+	if urllib.parse.urlparse(url).path=='':
+		filename = urllib.parse.urlparse(url).netloc
         if re.match(r'^/[a-zA-Z]:', filename):
             filename = filename[1:]
         return filename if return_filename else open(filename, "rb")
