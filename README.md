@@ -74,6 +74,7 @@ python gen_video.py --output=lerp.mp4 --trunc=1.0 --seeds=0-31 --grid=4x2 \
 We provide the following pretrained models (pass the url as `PATH_TO_NETWORK_PKL`):
   > <sub>`https://s3.eu-central-1.amazonaws.com/avg-projects/projected_gan/models/art_painting.pkl`</sub><br>
   > <sub>`https://s3.eu-central-1.amazonaws.com/avg-projects/projected_gan/models/church.pkl`</sub><br>
+  > <sub>`https://s3.eu-central-1.amazonaws.com/avg-projects/projected_gan/models/bedroom.pkl`</sub><br>
   > <sub>`https://s3.eu-central-1.amazonaws.com/avg-projects/projected_gan/models/cityscapes.pkl`</sub><br>
   > <sub>`https://s3.eu-central-1.amazonaws.com/avg-projects/projected_gan/models/clevr.pkl`</sub><br>
   > <sub>`https://s3.eu-central-1.amazonaws.com/avg-projects/projected_gan/models/ffhq.pkl`</sub><br>
