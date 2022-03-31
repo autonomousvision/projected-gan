@@ -17,6 +17,8 @@ If you find our code or paper useful, please cite
   year           = {2021},
 }
 ```
+## Related Projects ##
+- [StyleGAN-XL: Scaling StyleGAN to Large Diverse Datasets](https://github.com/autonomousvision/stylegan_xl)
 
 ## ToDos
 - [x] Initial code release
